@@ -1,0 +1,442 @@
+classdef image_process_compress < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure              matlab.ui.Figure
+        Switch                matlab.ui.control.ToggleSwitch
+        Panel_2               matlab.ui.container.Panel
+        BlueButton            matlab.ui.control.Button
+        GreenButton           matlab.ui.control.Button
+        RedButton             matlab.ui.control.Button
+        EditField_10          matlab.ui.control.EditField
+        Slider_2              matlab.ui.control.Slider
+        Slider                matlab.ui.control.Slider
+        EditField_8           matlab.ui.control.EditField
+        EditField_7           matlab.ui.control.EditField
+        Panel                 matlab.ui.container.Panel
+        Knob                  matlab.ui.control.Knob
+        EditField_9           matlab.ui.control.EditField
+        EditField_6           matlab.ui.control.EditField
+        EditField_5           matlab.ui.control.EditField
+        EditField_4           matlab.ui.control.EditField
+        UIAxes_3              matlab.ui.control.UIAxes
+        UIAxes_2              matlab.ui.control.UIAxes
+        UIAxes                matlab.ui.control.UIAxes
+        ColorInversionButton  matlab.ui.control.Button
+        MirrorImageButton     matlab.ui.control.Button
+        BrowseButton          matlab.ui.control.Button
+        GrayscaleButton       matlab.ui.control.Button
+        EditField_3           matlab.ui.control.EditField
+        EditField_2           matlab.ui.control.EditField
+        EditField             matlab.ui.control.EditField
+    end
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Button pushed function: BrowseButton
+        function BrowseButtonPushed(app, event)
+            global image1;
+            [filename pathname]= uigetfile({'*.jpg'},'Open file')
+            fullpathname = strcat(pathname, filename);
+            image1 = imread(fullpathname);
+            imshow(image1,'parent',app.UIAxes);
+        end
+
+        % Button pushed function: GrayscaleButton
+        function GrayscaleButtonPushed(app, event)
+            global image1;
+            global y;
+            y=rgb2gray(image1);
+            imshow(y,'parent',app.UIAxes_2);
+        end
+
+        % Button pushed function: MirrorImageButton
+        function MirrorImageButtonPushed(app, event)
+            global image1;
+            % Flip the original image horizontally to create a mirror image
+            mirrorImage = flip(image1, 2);
+            %mirrorImage = image1(:, end:-1:1)
+            
+            % Display the mirror image in the UIAxes
+            imshow(mirrorImage, 'Parent', app.UIAxes_2);
+        end
+
+        % Button pushed function: ColorInversionButton
+        function ColorInversionButtonPushed(app, event)
+            global image1;
+            global y;
+            %x = imread(y);
+            %[m,n]=size(x);
+            %z=255*ones(m,n);
+            %k = z-x;
+            complement = imcomplement(image1);
+            imshow(complement,'Parent',app.UIAxes_2);
+        end
+
+        % Value changed function: Slider
+        function SliderValueChanged(app, event)
+            value = app.Slider.Value;
+            global y;
+            global D;
+            global compressedSizeKB;
+            I2 = im2double(y);
+            [u, s, v] = svd(I2);
+            % Apply compression ratio to singular values
+            s2 = s;
+            s2(value:end, :) = 0;
+            s2(:, value:end) = 0;
+            D = u * s2 * v';
+            
+            % Update the compressed image in UIAxes3
+            imshow(D, 'Parent', app.UIAxes_3);
+        end
+
+        % Value changed function: Slider_2
+        function Slider_2ValueChanged(app, event)
+            value = app.Slider_2.Value;
+            global image1;
+           
+            % Perform SVD on each color channel separately
+            red_channel = double(image1(:,:,1));
+            green_channel = double(image1(:,:,2));
+            blue_channel = double(image1(:,:,3));
+            
+            [U_red, S_red, V_red] = svd(red_channel);
+            [U_green, S_green, V_green] = svd(green_channel);
+            [U_blue, S_blue, V_blue] = svd(blue_channel);
+            
+            % Reconstruct the image using a subset of singular values (e.g., keeping the first k singular values)
+             % Number of singular values to keep = value
+            k= value;
+            red_reconstructed = U_red(:,1:k) * S_red(1:k,1:k) * V_red(:,1:k)';
+            green_reconstructed = U_green(:,1:k) * S_green(1:k,1:k) * V_green(:,1:k)';
+            blue_reconstructed = U_blue(:,1:k) * S_blue(1:k,1:k) * V_blue(:,1:k)';
+            
+            % Concatenate the reconstructed color channels
+            reconstructed_image = uint8(cat(3, red_reconstructed, green_reconstructed, blue_reconstructed));
+            imshow(reconstructed_image, 'Parent', app.UIAxes_2);
+        end
+
+        % Value changed function: Switch
+        function SwitchValueChanged(app, event)
+            value = app.Switch.Value;
+            if strcmp(value, 'EXIT')
+                % Perform exit operations here
+                uialert(app.UIFigure, 'Exiting the program', 'EXIT');
+                delete(app.UIFigure); % Close the app window
+            end
+        end
+
+        % Value changed function: Knob
+        function KnobValueChanged(app, event)
+            global image1;
+            value = app.Knob.Value;
+            rotatedImage = imrotate(image1, value);
+            imshow(rotatedImage, 'Parent', app.UIAxes_2);
+            
+        end
+
+        % Button pushed function: RedButton
+        function RedButtonPushed(app, event)
+            global image1; 
+            redTintImage = image1;
+            redTintImage(:,:,1) = redTintImage(:,:,1) + 100; % Increase the red channel values
+            imshow(redTintImage, 'Parent', app.UIAxes_2);
+        end
+
+        % Callback function
+        function GreenButtonPushed(app, event)
+            
+        end
+
+        % Callback function
+        function BlueButtonPushed(app, event)
+            
+        end
+
+        % Button pushed function: GreenButton
+        function GreenButtonPushed2(app, event)
+            global image1; 
+            greenTintImage = image1;
+            greenTintImage(:,:,2) = greenTintImage(:,:,2) + 100; % Increase the red channel values
+            imshow(greenTintImage, 'Parent', app.UIAxes_2);
+        end
+
+        % Button pushed function: BlueButton
+        function BlueButtonPushed2(app, event)
+            global image1; 
+            blueTintImage = image1;
+            blueTintImage(:,:,3) = blueTintImage(:,:,3) + 100; % Increase the red channel values
+            imshow(blueTintImage, 'Parent', app.UIAxes_2);
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Color = [0 0.4471 0.7412];
+            app.UIFigure.Position = [100 100 1520 711];
+            app.UIFigure.Name = 'MATLAB App';
+
+            % Create EditField
+            app.EditField = uieditfield(app.UIFigure, 'text');
+            app.EditField.FontName = 'AvantGarde';
+            app.EditField.FontSize = 28;
+            app.EditField.FontWeight = 'bold';
+            app.EditField.FontAngle = 'italic';
+            app.EditField.BackgroundColor = [0 1 1];
+            app.EditField.Position = [102 629 1251 53];
+            app.EditField.Value = '                                                  Image Processing and Compression';
+
+            % Create EditField_2
+            app.EditField_2 = uieditfield(app.UIFigure, 'text');
+            app.EditField_2.FontWeight = 'bold';
+            app.EditField_2.BackgroundColor = [1 1 0.0667];
+            app.EditField_2.Position = [34 217 265 370];
+
+            % Create EditField_3
+            app.EditField_3 = uieditfield(app.UIFigure, 'text');
+            app.EditField_3.FontName = 'AvantGarde';
+            app.EditField_3.FontSize = 24;
+            app.EditField_3.FontWeight = 'bold';
+            app.EditField_3.BackgroundColor = [0.9294 0.6941 0.1255];
+            app.EditField_3.Position = [47 532 239 35];
+            app.EditField_3.Value = '         Operations';
+
+            % Create GrayscaleButton
+            app.GrayscaleButton = uibutton(app.UIFigure, 'push');
+            app.GrayscaleButton.ButtonPushedFcn = createCallbackFcn(app, @GrayscaleButtonPushed, true);
+            app.GrayscaleButton.BackgroundColor = [0 1 0];
+            app.GrayscaleButton.FontSize = 18;
+            app.GrayscaleButton.FontWeight = 'bold';
+            app.GrayscaleButton.Position = [58 394 219 44];
+            app.GrayscaleButton.Text = 'Grayscale';
+
+            % Create BrowseButton
+            app.BrowseButton = uibutton(app.UIFigure, 'push');
+            app.BrowseButton.ButtonPushedFcn = createCallbackFcn(app, @BrowseButtonPushed, true);
+            app.BrowseButton.BackgroundColor = [0 1 0];
+            app.BrowseButton.FontSize = 18;
+            app.BrowseButton.FontWeight = 'bold';
+            app.BrowseButton.Position = [58 463 219 44];
+            app.BrowseButton.Text = 'Browse';
+
+            % Create MirrorImageButton
+            app.MirrorImageButton = uibutton(app.UIFigure, 'push');
+            app.MirrorImageButton.ButtonPushedFcn = createCallbackFcn(app, @MirrorImageButtonPushed, true);
+            app.MirrorImageButton.BackgroundColor = [0 1 0];
+            app.MirrorImageButton.FontSize = 18;
+            app.MirrorImageButton.FontWeight = 'bold';
+            app.MirrorImageButton.Position = [58 321 219 44];
+            app.MirrorImageButton.Text = 'Mirror Image';
+
+            % Create ColorInversionButton
+            app.ColorInversionButton = uibutton(app.UIFigure, 'push');
+            app.ColorInversionButton.ButtonPushedFcn = createCallbackFcn(app, @ColorInversionButtonPushed, true);
+            app.ColorInversionButton.BackgroundColor = [0 1 0];
+            app.ColorInversionButton.FontSize = 18;
+            app.ColorInversionButton.FontWeight = 'bold';
+            app.ColorInversionButton.Position = [58 252 219 44];
+            app.ColorInversionButton.Text = 'Color Inversion';
+
+            % Create Panel
+            app.Panel = uipanel(app.UIFigure);
+            app.Panel.BorderColor = [1 0 0];
+            app.Panel.BorderWidth = 6;
+            app.Panel.BackgroundColor = [0.6471 1 0.3608];
+            app.Panel.Position = [364 321 1142 266];
+
+            % Create UIAxes
+            app.UIAxes = uiaxes(app.Panel);
+            app.UIAxes.XTick = [];
+            app.UIAxes.YTick = [];
+            app.UIAxes.Position = [28 7 203 197];
+
+            % Create UIAxes_2
+            app.UIAxes_2 = uiaxes(app.Panel);
+            app.UIAxes_2.XTick = [];
+            app.UIAxes_2.YTick = [];
+            app.UIAxes_2.Position = [291 5 202 192];
+
+            % Create UIAxes_3
+            app.UIAxes_3 = uiaxes(app.Panel);
+            app.UIAxes_3.XTick = [];
+            app.UIAxes_3.YTick = [];
+            app.UIAxes_3.Position = [554 5 203 192];
+
+            % Create EditField_4
+            app.EditField_4 = uieditfield(app.Panel, 'text');
+            app.EditField_4.FontName = 'AvantGarde';
+            app.EditField_4.FontSize = 24;
+            app.EditField_4.FontWeight = 'bold';
+            app.EditField_4.BackgroundColor = [1 0.0745 0.651];
+            app.EditField_4.Position = [9 203 239 35];
+            app.EditField_4.Value = '     Original Image';
+
+            % Create EditField_5
+            app.EditField_5 = uieditfield(app.Panel, 'text');
+            app.EditField_5.FontName = 'AvantGarde';
+            app.EditField_5.FontSize = 24;
+            app.EditField_5.FontWeight = 'bold';
+            app.EditField_5.BackgroundColor = [1 0.0745 0.651];
+            app.EditField_5.Position = [291 203 251 35];
+            app.EditField_5.Value = '     Operated Image';
+
+            % Create EditField_6
+            app.EditField_6 = uieditfield(app.Panel, 'text');
+            app.EditField_6.FontName = 'AvantGarde';
+            app.EditField_6.FontSize = 24;
+            app.EditField_6.FontWeight = 'bold';
+            app.EditField_6.BackgroundColor = [1 0.0745 0.651];
+            app.EditField_6.Position = [582 202 262 35];
+            app.EditField_6.Value = '  Compressed Image';
+
+            % Create EditField_9
+            app.EditField_9 = uieditfield(app.Panel, 'text');
+            app.EditField_9.FontName = 'AvantGarde';
+            app.EditField_9.FontSize = 24;
+            app.EditField_9.FontWeight = 'bold';
+            app.EditField_9.BackgroundColor = [1 0.0745 0.651];
+            app.EditField_9.Position = [922 196 166 35];
+            app.EditField_9.Value = '     Rotation';
+
+            % Create Knob
+            app.Knob = uiknob(app.Panel, 'continuous');
+            app.Knob.Limits = [0 360];
+            app.Knob.MajorTicks = [0 50 100 150 200 250 300 350];
+            app.Knob.ValueChangedFcn = createCallbackFcn(app, @KnobValueChanged, true);
+            app.Knob.FontSize = 18;
+            app.Knob.FontWeight = 'bold';
+            app.Knob.FontColor = [0 0 1];
+            app.Knob.Position = [948 38 115 115];
+
+            % Create Panel_2
+            app.Panel_2 = uipanel(app.UIFigure);
+            app.Panel_2.BorderColor = [0 0 0];
+            app.Panel_2.BorderWidth = 6;
+            app.Panel_2.BackgroundColor = [1 0.8706 0.1412];
+            app.Panel_2.Position = [365 43 1118 254];
+
+            % Create EditField_7
+            app.EditField_7 = uieditfield(app.Panel_2, 'text');
+            app.EditField_7.FontName = 'AvantGarde';
+            app.EditField_7.FontSize = 24;
+            app.EditField_7.FontWeight = 'bold';
+            app.EditField_7.BackgroundColor = [1 0.0745 0.651];
+            app.EditField_7.Position = [26 197 519 35];
+            app.EditField_7.Value = '                    Compression Slider';
+
+            % Create EditField_8
+            app.EditField_8 = uieditfield(app.Panel_2, 'text');
+            app.EditField_8.FontName = 'AvantGarde';
+            app.EditField_8.FontSize = 24;
+            app.EditField_8.FontWeight = 'bold';
+            app.EditField_8.BackgroundColor = [1 0.0745 0.651];
+            app.EditField_8.Position = [24 111 519 35];
+            app.EditField_8.Value = '                    Colorful Compression ';
+
+            % Create Slider
+            app.Slider = uislider(app.Panel_2);
+            app.Slider.Limits = [1 50];
+            app.Slider.MajorTicks = [1 10 20 30 40 50];
+            app.Slider.ValueChangedFcn = createCallbackFcn(app, @SliderValueChanged, true);
+            app.Slider.FontSize = 24;
+            app.Slider.FontWeight = 'bold';
+            app.Slider.FontColor = [0 0 1];
+            app.Slider.Position = [619 231 417 3];
+            app.Slider.Value = 1;
+
+            % Create Slider_2
+            app.Slider_2 = uislider(app.Panel_2);
+            app.Slider_2.Limits = [1 50];
+            app.Slider_2.MajorTicks = [1 10 20 30 40 50];
+            app.Slider_2.ValueChangedFcn = createCallbackFcn(app, @Slider_2ValueChanged, true);
+            app.Slider_2.FontSize = 24;
+            app.Slider_2.FontWeight = 'bold';
+            app.Slider_2.FontColor = [0 0 1];
+            app.Slider_2.Position = [619 143 417 3];
+            app.Slider_2.Value = 1;
+
+            % Create EditField_10
+            app.EditField_10 = uieditfield(app.Panel_2, 'text');
+            app.EditField_10.FontName = 'AvantGarde';
+            app.EditField_10.FontSize = 24;
+            app.EditField_10.FontWeight = 'bold';
+            app.EditField_10.BackgroundColor = [1 0.0745 0.651];
+            app.EditField_10.Position = [27 14 517 35];
+            app.EditField_10.Value = '                               Colors';
+
+            % Create RedButton
+            app.RedButton = uibutton(app.Panel_2, 'push');
+            app.RedButton.ButtonPushedFcn = createCallbackFcn(app, @RedButtonPushed, true);
+            app.RedButton.BackgroundColor = [0 1 0];
+            app.RedButton.FontSize = 18;
+            app.RedButton.FontWeight = 'bold';
+            app.RedButton.Position = [621 9 127 44];
+            app.RedButton.Text = 'Red';
+
+            % Create GreenButton
+            app.GreenButton = uibutton(app.Panel_2, 'push');
+            app.GreenButton.ButtonPushedFcn = createCallbackFcn(app, @GreenButtonPushed2, true);
+            app.GreenButton.BackgroundColor = [0 1 0];
+            app.GreenButton.FontSize = 18;
+            app.GreenButton.FontWeight = 'bold';
+            app.GreenButton.Position = [797 9 127 44];
+            app.GreenButton.Text = 'Green';
+
+            % Create BlueButton
+            app.BlueButton = uibutton(app.Panel_2, 'push');
+            app.BlueButton.ButtonPushedFcn = createCallbackFcn(app, @BlueButtonPushed2, true);
+            app.BlueButton.BackgroundColor = [0 1 0];
+            app.BlueButton.FontSize = 18;
+            app.BlueButton.FontWeight = 'bold';
+            app.BlueButton.Position = [961 9 127 44];
+            app.BlueButton.Text = 'Blue';
+
+            % Create Switch
+            app.Switch = uiswitch(app.UIFigure, 'toggle');
+            app.Switch.Items = {'', 'EXIT'};
+            app.Switch.Orientation = 'horizontal';
+            app.Switch.ValueChangedFcn = createCallbackFcn(app, @SwitchValueChanged, true);
+            app.Switch.FontSize = 36;
+            app.Switch.FontWeight = 'bold';
+            app.Switch.FontColor = [1 0 0];
+            app.Switch.Position = [47 99 162 72];
+            app.Switch.Value = '';
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = image_process_compress
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
